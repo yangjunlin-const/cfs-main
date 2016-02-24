@@ -30,7 +30,6 @@ import java.io.UTFDataFormatException;
  * Note that this decodes UTF-8 but actually encodes CESU-8, a variant of UTF-8: see
  * http://en.wikipedia.org/wiki/CESU-8
  *
- * @deprecated replaced by Text
  */
 public class UTF8 implements WritableComparable<UTF8> {
     private static final Log LOG = LogFactory.getLog(UTF8.class);

@@ -78,11 +78,10 @@ public class LightWeightCache<K, E extends K> extends LightWeightGSet<K, E> {
                 : recommendedLength;
     }
 
-    /*
-     * The memory footprint for java.util.PriorityQueue is low but the
-     * remove(Object) method runs in linear time. We may improve it by using a
-     * balanced tree. However, we do not yet have a low memory footprint balanced
-     * tree implementation.
+    /**
+     * The memory footprint for java.util.PriorityQueue is low but the remove(Object) method runs in linear time. We may
+     * improve it by using a balanced tree. However, we do not yet have a low memory footprint balanced tree
+     * implementation.
      */
     private final PriorityQueue<Entry> queue;
     private final long creationExpirationPeriod;

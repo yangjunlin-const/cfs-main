@@ -106,9 +106,9 @@ public class ShellBasedIdMapping implements IdMappingServiceProvider {
         updateMaps();
     }
 
-    /*
-     * Constructor
-     * initialize user and group maps to empty
+    /**
+     * Constructor initialize user and group maps to empty
+     *
      * @param conf the configuration
      */
     public ShellBasedIdMapping(Configuration conf) throws IOException {
@@ -305,10 +305,9 @@ public class ShellBasedIdMapping implements IdMappingServiceProvider {
         }
     }
 
-    /*
-     * Refresh static map, and reset the other maps to empty.
-     * For testing code, a full map may be re-constructed here when the object
-     * was created with constructFullMapAtInit being set to true.
+    /**
+     * Refresh static map, and reset the other maps to empty. For testing code, a full map may be re-constructed here
+     * when the object was created with constructFullMapAtInit being set to true.
      */
     synchronized public void updateMaps() throws IOException {
         if (!checkSupportedPlatform()) {
@@ -567,6 +566,7 @@ public class ShellBasedIdMapping implements IdMappingServiceProvider {
             String line = null;
             while ((line = in.readLine()) != null) {
                 // Skip entirely empty and comment lines.
+                LOG.info("--- the idmaping read line is : " + line);
                 if (EMPTY_LINE.matcher(line).matches() ||
                         COMMENT_LINE.matcher(line).matches()) {
                     continue;
@@ -583,6 +583,7 @@ public class ShellBasedIdMapping implements IdMappingServiceProvider {
                 // We know the line is fine to parse without error checking like this
                 // since it matched the regex above.
                 String firstComponent = lineMatcher.group(1);
+                LOG.info("--- the idmaping read line group(1) is : " + firstComponent);
                 int remoteId = parseId(lineMatcher.group(2));
                 int localId = parseId(lineMatcher.group(3));
                 if (firstComponent.equals("uid")) {

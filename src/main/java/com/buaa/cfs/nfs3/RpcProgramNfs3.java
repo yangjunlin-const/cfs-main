@@ -134,9 +134,10 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
             DatagramSocket registrationSocket, boolean allowInsecurePorts)
             throws IOException {
 //        DefaultMetricsSystem.initialize("Nfs3");
-//        String displayName = DNS.getDefaultHost("default", "default")
-//                + config.getInt(NfsConfigKeys.DFS_NFS_SERVER_PORT_KEY,
-//                NfsConfigKeys.DFS_NFS_SERVER_PORT_DEFAULT);
+        String displayName = DNS.getDefaultHost("default", "default")
+                + config.getInt(NfsConfigKeys.DFS_NFS_SERVER_PORT_KEY,
+                NfsConfigKeys.DFS_NFS_SERVER_PORT_DEFAULT);
+        LOG.info(displayName);
 //        metrics = Nfs3Metrics.create(config, displayName);
         return new RpcProgramNfs3(config, registrationSocket, allowInsecurePorts);
     }
