@@ -13,12 +13,14 @@
 package com.buaa.cfs.nfs3;
 
 import com.buaa.cfs.client.DFSClient;
+import com.buaa.cfs.common.oncrpc.XDR;
 import com.buaa.cfs.constant.Nfs3Constant;
 import com.buaa.cfs.fs.HdfsFileStatus;
 import com.buaa.cfs.nfs3.response.WccAttr;
-import com.buaa.cfs.common.oncrpc.XDR;
 import com.buaa.cfs.nfs3.response.WccData;
 import com.buaa.cfs.security.IdMappingServiceProvider;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.LogFactory;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 
@@ -28,6 +30,9 @@ import java.io.IOException;
  * Utility/helper methods related to NFS
  */
 public class Nfs3Utils {
+
+    static final org.apache.commons.logging.Log LOG = LogFactory.getLog(Nfs3Utils.class);
+
     public final static String INODEID_PATH_PREFIX = "/.reserved/.inodes/";
 
 
@@ -38,7 +43,11 @@ public class Nfs3Utils {
 
     public static String getFileIdPath(FileHandle handle) {
 //        return getFileIdPath(handle.getFileId());
-        return DFSClient.fileId_fileName.get(handle.getFileId());
+        String result = DFSClient.fileId_fileName.get(handle.getFileId());
+        if (StringUtils.isEmpty(result)) {
+            LOG.info("--- the DFSClient.fileId_fileName is null , the long is :" + handle.getFileId());
+        }
+        return null;
     }
 
     public static String getFileIdPath(long fileId) {

@@ -17,7 +17,17 @@ import com.buaa.cfs.nfs3.response.WccAttr;
 import com.buaa.cfs.common.oncrpc.XDR;
 
 /**
- * File attrbutes reported in NFS.
+ * File attrbutes reported in NFS. The fattr3 structure contains the basic attributes of a file. All servers should
+ * support this set of attributes even if they have to simulate some of the fields. Type is the type of the file. Mode
+ * is the protection mode bits. Nlink is the number of hard links to the file - that is, the number of different names
+ * for the same file. Uid is the user ID of the owner of the file. Gid is the group ID of the group of the file. Size is
+ * the size of the file in bytes. Used is the number of bytes of disk space that the file actually uses (which can be
+ * smaller than the size because the file may have holes or it may be larger due to fragmentation). Rdev describes the
+ * device file if the file type is NF3CHR or NF3BLK - see specdata3 on page 20. Fsid is the file system identifier for
+ * the file system. Fileid is a number which uniquely identifies the file within its file system (on UNIX this would be
+ * the inumber). Atime is the time when the file data was last accessed. Mtime is the time when the file data was last
+ * modified. Ctime is the time when the attributes of the file were last changed. Writing to the file changes the ctime
+ * in addition to the mtime.
  */
 public class Nfs3FileAttributes {
     private int type;
@@ -34,15 +44,12 @@ public class Nfs3FileAttributes {
     private NfsTime mtime;
     private NfsTime ctime;
 
-    /*
-     * The interpretation of the two words depends on the type of file system
-     * object. For a block special (NF3BLK) or character special (NF3CHR) file,
-     * specdata1 and specdata2 are the major and minor device numbers,
-     * respectively. (This is obviously a UNIX-specific interpretation.) For all
-     * other file types, these two elements should either be set to 0 or the
-     * values should be agreed upon by the client and server. If the client and
-     * server do not agree upon the values, the client should treat these fields
-     * as if they are set to 0.
+    /**
+     * The interpretation of the two words depends on the type of file system object. For a block special (NF3BLK) or
+     * character special (NF3CHR) file, specdata1 and specdata2 are the major and minor device numbers, respectively.
+     * (This is obviously a UNIX-specific interpretation.) For all other file types, these two elements should either be
+     * set to 0 or the values should be agreed upon by the client and server. If the client and server do not agree upon
+     * the values, the client should treat these fields as if they are set to 0.
      */
     public static class Specdata3 {
         final int specdata1;

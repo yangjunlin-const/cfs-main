@@ -13,6 +13,7 @@
 package com.buaa.cfs.constant;
 
 
+import com.buaa.cfs.conf.NfsConfiguration;
 import com.buaa.cfs.fs.Path;
 import com.buaa.cfs.utils.StringUtils;
 
@@ -58,12 +59,12 @@ public class HdfsConstants {
 
     // TODO should be conf injected?
     public static final int DEFAULT_DATA_SOCKET_SIZE = 128 * 1024;
-//    public static final int IO_FILE_BUFFER_SIZE = new HdfsConfiguration().getInt(
-//            DFSConfigKeys.IO_FILE_BUFFER_SIZE_KEY,
-//            DFSConfigKeys.IO_FILE_BUFFER_SIZE_DEFAULT);
+    public static final int IO_FILE_BUFFER_SIZE = new NfsConfiguration().getInt(
+            DFSConfigKeys.IO_FILE_BUFFER_SIZE_KEY,
+            DFSConfigKeys.IO_FILE_BUFFER_SIZE_DEFAULT);
     // Used for writing header etc.
-//    public static final int SMALL_BUFFER_SIZE = Math.min(IO_FILE_BUFFER_SIZE / 2,
-//            512);
+    public static final int SMALL_BUFFER_SIZE = Math.min(IO_FILE_BUFFER_SIZE / 2,
+            512);
 
     public static final int BYTES_IN_INTEGER = Integer.SIZE / Byte.SIZE;
 

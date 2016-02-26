@@ -17,7 +17,7 @@ import com.buaa.cfs.nfs3.Nfs3FileAttributes;
 import com.buaa.cfs.common.oncrpc.XDR;
 
 /**
- * WccData saved information used by client for weak cache consistency
+ * weak cache consistency data. WccData saved information used by client for weak cache consistency
  */
 public class WccData {
     private WccAttr preOpAttr;
