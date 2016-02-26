@@ -1293,4 +1293,8 @@ public class FileUtil {
                 unexpandedWildcardClasspath.toString()};
         return jarCp;
     }
+
+    public static long getFileId(java.nio.file.Path path) {
+        return path.toString().hashCode();
+    }
 }

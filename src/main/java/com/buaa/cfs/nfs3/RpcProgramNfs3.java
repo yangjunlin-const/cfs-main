@@ -413,6 +413,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
 
         FileHandle dirHandle = request.getHandle();
         String fileName = request.getName();
+        LOG.info("--- the file name is : " + fileName);
         if (LOG.isDebugEnabled()) {
             LOG.debug("NFS LOOKUP dir fileId: " + dirHandle.getFileId() + " name: "
                     + fileName + " client: " + remoteAddress);
@@ -420,6 +421,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
 
         try {
             String dirFileIdPath = Nfs3Utils.getFileIdPath(dirHandle);
+            LOG.info("--- the dirFileIdPath is : " + dirFileIdPath);
             Nfs3FileAttributes postOpObjAttr = writeManager.getFileAttr(dfsClient,
                     dirHandle, fileName);
             if (postOpObjAttr == null) {
@@ -2036,6 +2038,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
     public void handleInternal(ChannelHandlerContext ctx, RpcInfo info) {
         RpcCall rpcCall = (RpcCall) info.header();
         final NFSPROC3 nfsproc3 = NFSPROC3.fromValue(rpcCall.getProcedure());
+        LOG.info("--- nfs3 rpc type is : " + nfsproc3.name());
         int xid = rpcCall.getXid();
         byte[] data = new byte[info.data().readableBytes()];
         info.data().readBytes(data);

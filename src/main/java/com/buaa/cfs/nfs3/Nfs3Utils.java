@@ -37,7 +37,8 @@ public class Nfs3Utils {
     public final static String WRITE_RPC_END = "WRITE_RPC_CALL_END______";
 
     public static String getFileIdPath(FileHandle handle) {
-        return getFileIdPath(handle.getFileId());
+//        return getFileIdPath(handle.getFileId());
+        return DFSClient.fileId_fileName.get(handle.getFileId());
     }
 
     public static String getFileIdPath(long fileId) {
@@ -46,8 +47,7 @@ public class Nfs3Utils {
 
     public static HdfsFileStatus getFileStatus(DFSClient client, String fileIdPath)
             throws IOException {
-//    return client.getFileLinkInfo(fileIdPath);
-        return null;
+        return client.getFileLinkInfo(fileIdPath);
     }
 
     public static Nfs3FileAttributes getNfs3FileAttrFromFileStatus(

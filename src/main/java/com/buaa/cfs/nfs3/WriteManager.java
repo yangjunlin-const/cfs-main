@@ -319,9 +319,9 @@ public class WriteManager {
 
     Nfs3FileAttributes getFileAttr(DFSClient client, FileHandle dirHandle,
             String fileName) throws IOException {
-        String fileIdPath = Nfs3Utils.getFileIdPath(dirHandle) + "/" + fileName;
-        Nfs3FileAttributes attr = Nfs3Utils.getFileAttr(client, fileIdPath, iug);
-
+//        String fileIdPath = Nfs3Utils.getFileIdPath(dirHandle) + "/" + fileName;
+//        Nfs3FileAttributes attr = Nfs3Utils.getFileAttr(client, fileIdPath, iug);
+        Nfs3FileAttributes attr = Nfs3Utils.getFileAttr(client, DFSClient.fileId_fileName.get(dirHandle.getFileId()), iug);
         if ((attr != null) && (attr.getType() == NfsFileType.NFSREG.toValue())) {
             OpenFileCtx openFileCtx = fileContextCache.get(new FileHandle(attr
                     .getFileId()));

@@ -14,6 +14,7 @@ package com.buaa.cfs.mount;
 
 import com.buaa.cfs.client.DFSClient;
 import com.buaa.cfs.common.oncrpc.*;
+import com.buaa.cfs.fs.HdfsFileStatus;
 import com.buaa.cfs.nfs3.AccessPrivilege;
 import com.buaa.cfs.nfs3.FileHandle;
 import com.buaa.cfs.nfs3.Nfs3Status;
@@ -74,7 +75,8 @@ public class RpcProgramMountd extends RpcProgram implements MountInterface {
         UserGroupInformation.setConfiguration(config);
         SecurityUtil.login(config, NfsConfigKeys.DFS_NFS_KEYTAB_FILE_KEY,
                 NfsConfigKeys.DFS_NFS_KERBEROS_PRINCIPAL_KEY);
-        this.dfsClient = null;
+        this.dfsClient = new DFSClient();
+
 //        this.dfsClient = new DFSClient(NameNode.getAddress(config), config);
     }
 
@@ -100,6 +102,7 @@ public class RpcProgramMountd extends RpcProgram implements MountInterface {
         }
 
         String path = xdr.readString();
+        LOG.info("--- the request path is : " + path);
         if (LOG.isDebugEnabled()) {
             LOG.debug("MOUNT MNT path: " + path + " client: " + client);
         }
@@ -125,6 +128,15 @@ public class RpcProgramMountd extends RpcProgram implements MountInterface {
 //            return out;
 //        }
 
+        try {
+            HdfsFileStatus exFileStatus = dfsClient.getFileInfo(path);
+            LOG.info("--- filed id is : " + exFileStatus.getFileId());
+            handle = new FileHandle(exFileStatus.getFileId());
+        } catch (IOException e) {
+            LOG.error("Can't get handle for export:" + path, e);
+            MountResponse.writeMNTResponse(Nfs3Status.NFS3ERR_NOENT, out, xid, null);
+            return out;
+        }
         assert (handle != null);
         LOG.info("Giving handle (fileId:" + handle.getFileId()
                 + ") to client for export " + path);
@@ -173,6 +185,7 @@ public class RpcProgramMountd extends RpcProgram implements MountInterface {
     public void handleInternal(ChannelHandlerContext ctx, RpcInfo info) {
         RpcCall rpcCall = (RpcCall) info.header();
         final MNTPROC mntproc = MNTPROC.fromValue(rpcCall.getProcedure());
+        LOG.info("--- mnt rpc type is : " + mntproc.name());
         int xid = rpcCall.getXid();
         byte[] data = new byte[info.data().readableBytes()];
         info.data().readBytes(data);

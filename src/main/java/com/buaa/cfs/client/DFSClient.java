@@ -1,20 +1,27 @@
 package com.buaa.cfs.client;
 
-import com.buaa.cfs.exception.AccessControlException;
-import com.buaa.cfs.fs.DirectoryListing;
-import com.buaa.cfs.fs.FsStatus;
-import com.buaa.cfs.fs.HdfsFileStatus;
-import com.buaa.cfs.fs.Options;
+import com.buaa.cfs.fs.*;
+import com.buaa.cfs.fs.permission.FsAction;
 import com.buaa.cfs.fs.permission.FsPermission;
+import com.buaa.cfs.utils.FileUtil;
+import org.mortbay.log.Log;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.rmi.RemoteException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by yjl on 2/19/16.
  */
 public class DFSClient implements java.io.Closeable {
+
+    private static String preFile = DFSClient.class.getResource("").getPath();
+    public static Map<Long, String> fileId_fileName = new ConcurrentHashMap<>();
 
     @Override
     public void close() throws IOException {
@@ -29,8 +36,34 @@ public class DFSClient implements java.io.Closeable {
      * @return object containing information regarding the file or null if file not found
      */
     public HdfsFileStatus getFileInfo(String src) throws IOException {
-        return null;
+        String realSrc = preFile.substring(0, preFile.length() - 1) + src;
+        Log.info("--- the real src path is : " + realSrc);
+        Path srcPath = Paths.get(realSrc);
+        BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
+        PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
+        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
+        long length = basicFileAttributes.size();
+        boolean isdir = basicFileAttributes.isDirectory();
+        short block_replication = 1;
+        long blocksize = 128 * 1024;
+        long access_time = basicFileAttributes.lastAccessTime().toMillis();
+        long modification_time = basicFileAttributes.lastModifiedTime().toMillis();
+        FsPermission permission = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL);
+        String owner = posixFileAttributes.owner().getName();
+        String group = posixFileAttributes.group().getName();
+        long filedId = FileUtil.getFileId(srcPath);
+        fileId_fileName.put(filedId, realSrc);
+        FileEncryptionInfo feInfo = null;
+        int childrenNum = 0;
+        if (Files.isDirectory(srcPath)) {
+            childrenNum = srcPath.toFile().listFiles().length;
+        }
+        byte[] symlink = null;
+        byte storagePolicy = 0;
+        HdfsFileStatus hdfsFileStatus = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
+        return hdfsFileStatus;
     }
+
 
     /**
      * Set permissions to a file or directory.
@@ -112,7 +145,31 @@ public class DFSClient implements java.io.Closeable {
      *            For description of exceptions thrown
      */
     public HdfsFileStatus getFileLinkInfo(String src) throws IOException {
-        return null;
+        String realSrc = src;
+        Log.info("--- the real src path is : " + realSrc);
+        Path srcPath = Paths.get(realSrc);
+        BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
+        PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
+        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
+        long length = basicFileAttributes.size();
+        boolean isdir = basicFileAttributes.isDirectory();
+        short block_replication = 1;
+        long blocksize = 128 * 1024;
+        long access_time = basicFileAttributes.lastAccessTime().toMillis();
+        long modification_time = basicFileAttributes.lastModifiedTime().toMillis();
+        FsPermission permission = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL);
+        String owner = posixFileAttributes.owner().getName();
+        String group = posixFileAttributes.group().getName();
+        long filedId = FileUtil.getFileId(srcPath);
+        FileEncryptionInfo feInfo = null;
+        int childrenNum = 0;
+        if (Files.isDirectory(srcPath)) {
+            childrenNum = srcPath.toFile().listFiles().length;
+        }
+        byte[] symlink = null;
+        byte storagePolicy = 0;
+        HdfsFileStatus hdfsFileStatus = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
+        return hdfsFileStatus;
     }
 
     /**

@@ -161,7 +161,7 @@ class DFSClientCache {
                     @Override
                     public DFSClient run() throws IOException {
 //            return new DFSClient(NameNode.getAddress(config), config);
-                        return null;
+                        return new DFSClient();
                     }
                 });
             }
