@@ -49,6 +49,6 @@ public class Nfs3 extends Nfs3Base {
 
     public static void main(String[] args) throws IOException {
         startService(args, null);
-        LOG.info("--- ********************** start nfs server success ************************");
+        LOG.info("--- *********************** start nfs server success ************************");
     }
 }
