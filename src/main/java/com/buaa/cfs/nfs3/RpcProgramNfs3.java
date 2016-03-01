@@ -2092,6 +2092,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
         NFS3Response response = null;
         if (nfsproc3 == NFSPROC3.NULL) {
             response = nullProcedure();
+            LOG.info("--- running unit process NULL --- ");
         } else if (nfsproc3 == NFSPROC3.GETATTR) {
             response = getattr(xdr, info);
 //            metrics.addGetattr(Nfs3Utils.getElapsedTime(startTime));
