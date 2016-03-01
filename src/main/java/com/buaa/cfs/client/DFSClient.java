@@ -4,8 +4,10 @@ import com.buaa.cfs.fs.*;
 import com.buaa.cfs.fs.permission.FsAction;
 import com.buaa.cfs.fs.permission.FsPermission;
 import com.buaa.cfs.utils.FileUtil;
-import org.mortbay.log.Log;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by yjl on 2/19/16.
  */
 public class DFSClient implements java.io.Closeable {
+    private static final Log LOG = LogFactory.getLog(DFSClient.class);
 
     private static String preFile = DFSClient.class.getResource("").getPath();
     public static Map<Long, String> fileId_fileName = new ConcurrentHashMap<>();
@@ -36,9 +39,20 @@ public class DFSClient implements java.io.Closeable {
      * @return object containing information regarding the file or null if file not found
      */
     public HdfsFileStatus getFileInfo(String src) throws IOException {
-        String realSrc = preFile.substring(0, preFile.length() - 1) + src;
-        Log.info("--- the real src path is : " + realSrc);
+        String realSrc = src;
         Path srcPath = Paths.get(realSrc);
+        long filedId = FileUtil.getFileId(srcPath);
+        if (!fileId_fileName.containsValue(src)) {
+            realSrc = preFile.substring(0, preFile.length() - 1) + src;
+            srcPath = Paths.get(realSrc);
+            filedId = FileUtil.getFileId(srcPath);
+            fileId_fileName.put(filedId, realSrc);
+        }
+        if (!Files.exists(srcPath)) {
+            LOG.info("--- the src path is not exist.");
+            return null;
+        }
+        LOG.info("--- the real src path is : " + realSrc);
         BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
         PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
         byte[] path = srcPath.toAbsolutePath().toString().getBytes();
@@ -51,8 +65,37 @@ public class DFSClient implements java.io.Closeable {
         FsPermission permission = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL);
         String owner = posixFileAttributes.owner().getName();
         String group = posixFileAttributes.group().getName();
+        FileEncryptionInfo feInfo = null;
+        int childrenNum = 0;
+        if (Files.isDirectory(srcPath)) {
+            childrenNum = srcPath.toFile().listFiles().length;
+        }
+        byte[] symlink = null;
+        byte storagePolicy = 0;
+        HdfsFileStatus fs = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
+        LOG.info("--- " + fs.getGroup() + " :group ; " + fs.getLocalName() + " :localname ; " + fs.getOwner() + " :owner ; " + fs.getSymlink() + " :symlink ; " + fs.getAccessTime() + " : access_time ; " + fs.getBlock_replication() + " :blockreplication ; " + fs.getBlockSize() + " :blocksize ; " + fs.getChildrenNum() + " : childrennum ; " + fs.getFileEncryptionInfo() + " : encryption ; " + fs.getFileId() + " :fileid ; " + fs.getLen() + " : length ; " + fs.getModification_time() + " : modifytime ; " + String.valueOf(fs.getPath()) + " : path ; " + fs.getStoragePolicy() + " : storagepolicy ; " + String.valueOf(fs.getSymlinkInBytes()) + " : symlink");
+        return fs;
+    }
+
+    public HdfsFileStatus getRealFileInfo(String realSrc) throws IOException {
+        Path srcPath = Paths.get(realSrc);
         long filedId = FileUtil.getFileId(srcPath);
-        fileId_fileName.put(filedId, realSrc);
+        if (!fileId_fileName.containsValue(realSrc)) {
+            fileId_fileName.put(filedId, realSrc);
+        }
+        LOG.info("--- the real src path is : " + realSrc);
+        BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
+        PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
+        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
+        long length = basicFileAttributes.size();
+        boolean isdir = basicFileAttributes.isDirectory();
+        short block_replication = 1;
+        long blocksize = 128 * 1024;
+        long access_time = basicFileAttributes.lastAccessTime().toMillis();
+        long modification_time = basicFileAttributes.lastModifiedTime().toMillis();
+        FsPermission permission = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL);
+        String owner = posixFileAttributes.owner().getName();
+        String group = posixFileAttributes.group().getName();
         FileEncryptionInfo feInfo = null;
         int childrenNum = 0;
         if (Files.isDirectory(srcPath)) {
@@ -63,7 +106,6 @@ public class DFSClient implements java.io.Closeable {
         HdfsFileStatus hdfsFileStatus = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
         return hdfsFileStatus;
     }
-
 
     /**
      * Set permissions to a file or directory.
@@ -137,47 +179,26 @@ public class DFSClient implements java.io.Closeable {
     }
 
     /**
-     * Get the file info for a specific file or directory. If src refers to a symlink then the FileStatus of the link is
-     * returned.
-     *
-     * @param src path to a file or directory.
-     *            <p>
-     *            For description of exceptions thrown
-     */
-    public HdfsFileStatus getFileLinkInfo(String src) throws IOException {
-        String realSrc = src;
-        Log.info("--- the real src path is : " + realSrc);
-        Path srcPath = Paths.get(realSrc);
-        BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
-        PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
-        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
-        long length = basicFileAttributes.size();
-        boolean isdir = basicFileAttributes.isDirectory();
-        short block_replication = 1;
-        long blocksize = 128 * 1024;
-        long access_time = basicFileAttributes.lastAccessTime().toMillis();
-        long modification_time = basicFileAttributes.lastModifiedTime().toMillis();
-        FsPermission permission = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL);
-        String owner = posixFileAttributes.owner().getName();
-        String group = posixFileAttributes.group().getName();
-        long filedId = FileUtil.getFileId(srcPath);
-        FileEncryptionInfo feInfo = null;
-        int childrenNum = 0;
-        if (Files.isDirectory(srcPath)) {
-            childrenNum = srcPath.toFile().listFiles().length;
-        }
-        byte[] symlink = null;
-        byte storagePolicy = 0;
-        HdfsFileStatus hdfsFileStatus = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
-        return hdfsFileStatus;
-    }
-
-    /**
      * Get a partial listing of the indicated directory No block locations need to be fetched
      */
     public DirectoryListing listPaths(String src, byte[] startAfter)
             throws IOException {
-        return null;
+        LOG.info("--- list path src is : " + src);
+        File[] files = new File(src).listFiles();
+        HdfsFileStatus[] statuses = new HdfsFileStatus[]{};
+        if (files.length == 0) {
+            return new DirectoryListing(null, 0);
+        }
+        int flag = 0;
+        for (File file : files) {
+            LOG.info("--- list children path src is : " + file.getAbsolutePath());
+            HdfsFileStatus status = getRealFileInfo(file.getAbsolutePath());
+            if (status != null) {
+                statuses[flag] = status;
+                flag++;
+            }
+        }
+        return new DirectoryListing(statuses, 0);
     }
 
     /**

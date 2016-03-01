@@ -1367,7 +1367,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
             // Set symlink attr is considered as to change the attr of the target
             // file. So no need to set symlink attr here after it's created.
 
-            HdfsFileStatus linkstat = dfsClient.getFileLinkInfo(linkIdPath);
+            HdfsFileStatus linkstat = dfsClient.getFileInfo(linkIdPath);
             Nfs3FileAttributes objAttr = Nfs3Utils.getNfs3FileAttrFromFileStatus(
                     linkstat, iug);
             dirWcc
@@ -1394,22 +1394,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
      */
     private DirectoryListing listPaths(DFSClient dfsClient, String dirFileIdPath,
             byte[] startAfter) throws IOException {
-        DirectoryListing dlisting;
-        try {
-            dlisting = dfsClient.listPaths(dirFileIdPath, startAfter);
-        } catch (RemoteException e) {
-//            IOException io = e.unwrapRemoteException();
-            IOException io = new IOException();
-            if (!(io instanceof DirectoryListingStartAfterNotFoundException)) {
-                throw io;
-            }
-            // This happens when startAfter was just deleted
-            LOG.info("Cookie couldn't be found: "
-                    + new String(startAfter, Charset.forName("UTF-8"))
-                    + ", do listing from beginning");
-            dlisting = dfsClient
-                    .listPaths(dirFileIdPath, HdfsFileStatus.EMPTY_NAME);
-        }
+        DirectoryListing dlisting = dfsClient.listPaths(dirFileIdPath, startAfter);
         return dlisting;
     }
 
@@ -1665,8 +1650,8 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
 
             if (cookie == 0) {
                 // Get dotdot fileId
-                String dotdotFileIdPath = dirFileIdPath + "/..";
-                dotdotStatus = dfsClient.getFileInfo(dotdotFileIdPath);
+                String dotdotFileIdPath = dirFileIdPath + "..";
+                dotdotStatus = dfsClient.getRealFileInfo(dotdotFileIdPath);
 
                 if (dotdotStatus == null) {
                     // This should not happen
@@ -1681,8 +1666,9 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
             if (cookie == 0) {
                 startAfter = HdfsFileStatus.EMPTY_NAME;
             } else {
-                String inodeIdPath = Nfs3Utils.getFileIdPath(cookie);
-                startAfter = inodeIdPath.getBytes(Charset.forName("UTF-8"));
+//                String inodeIdPath = Nfs3Utils.getFileIdPath(cookie);
+//                startAfter = inodeIdPath.getBytes(Charset.forName("UTF-8"));
+                startAfter = HdfsFileStatus.EMPTY_NAME;
             }
 
             dlisting = listPaths(dfsClient, dirFileIdPath, startAfter);
@@ -1701,7 +1687,8 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
         HdfsFileStatus[] fstatus = dlisting.getPartialListing();
         int n = (int) Math.min(fstatus.length, dirCount - 2);
         boolean eof = (n >= fstatus.length) && !dlisting.hasMore();
-
+        LOG.info("--- the number of list is : " + n);
+        LOG.info("--- is eof : " + eof);
         READDIRPLUS3Response.EntryPlus3[] entries;
         if (cookie == 0) {
             entries = new READDIRPLUS3Response.EntryPlus3[n + 2];

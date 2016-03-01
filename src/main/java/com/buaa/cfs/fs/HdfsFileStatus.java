@@ -14,6 +14,7 @@ package com.buaa.cfs.fs;
 
 
 import com.buaa.cfs.fs.permission.FsPermission;
+import com.buaa.cfs.utils.DFSUtil;
 
 import java.net.URI;
 
@@ -244,8 +245,39 @@ public class HdfsFileStatus {
      * @return the symlink as a string.
      */
     public final String getSymlink() {
-//        return DFSUtil.bytes2String(symlink);
-        return null;
+        return DFSUtil.bytes2String(symlink);
+    }
+
+    public byte[] getPath() {
+        return path;
+    }
+
+    public long getLength() {
+        return length;
+    }
+
+    public boolean isdir() {
+        return isdir;
+    }
+
+    public short getBlock_replication() {
+        return block_replication;
+    }
+
+    public long getBlocksize() {
+        return blocksize;
+    }
+
+    public long getModification_time() {
+        return modification_time;
+    }
+
+    public long getAccess_time() {
+        return access_time;
+    }
+
+    public FileEncryptionInfo getFeInfo() {
+        return feInfo;
     }
 
     public final byte[] getSymlinkInBytes() {

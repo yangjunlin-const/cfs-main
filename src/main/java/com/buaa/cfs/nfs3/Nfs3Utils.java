@@ -35,7 +35,6 @@ public class Nfs3Utils {
 
     public final static String INODEID_PATH_PREFIX = "/.reserved/.inodes/";
 
-
     public final static String READ_RPC_START = "READ_RPC_CALL_START____";
     public final static String READ_RPC_END = "READ_RPC_CALL_END______";
     public final static String WRITE_RPC_START = "WRITE_RPC_CALL_START____";
@@ -45,9 +44,9 @@ public class Nfs3Utils {
 //        return getFileIdPath(handle.getFileId());
         String result = DFSClient.fileId_fileName.get(handle.getFileId());
         if (StringUtils.isEmpty(result)) {
-            LOG.info("--- the DFSClient.fileId_fileName is null , the long is :" + handle.getFileId());
+            LOG.info("--- the DFSClient.fileId_fileName is null , the fileid is :" + handle.getFileId());
         }
-        return null;
+        return result;
     }
 
     public static String getFileIdPath(long fileId) {
@@ -56,7 +55,7 @@ public class Nfs3Utils {
 
     public static HdfsFileStatus getFileStatus(DFSClient client, String fileIdPath)
             throws IOException {
-        return client.getFileLinkInfo(fileIdPath);
+        return client.getFileInfo(fileIdPath);
     }
 
     public static Nfs3FileAttributes getNfs3FileAttrFromFileStatus(
@@ -81,6 +80,9 @@ public class Nfs3Utils {
     public static Nfs3FileAttributes getFileAttr(DFSClient client,
             String fileIdPath, IdMappingServiceProvider iug) throws IOException {
         HdfsFileStatus fs = getFileStatus(client, fileIdPath);
+        if (fs == null) {
+            LOG.info("--- the filestatus is null.");
+        }
         return fs == null ? null : getNfs3FileAttrFromFileStatus(fs, iug);
     }
 
