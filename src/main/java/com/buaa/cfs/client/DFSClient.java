@@ -3,7 +3,9 @@ package com.buaa.cfs.client;
 import com.buaa.cfs.fs.*;
 import com.buaa.cfs.fs.permission.FsAction;
 import com.buaa.cfs.fs.permission.FsPermission;
+import com.buaa.cfs.io.UTF8;
 import com.buaa.cfs.utils.FileUtil;
+import com.google.common.base.Charsets;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -14,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,6 +44,9 @@ public class DFSClient implements java.io.Closeable {
      */
     public HdfsFileStatus getFileInfo(String src) throws IOException {
         String realSrc = src;
+        if (src.endsWith("/")) {
+            realSrc = src.substring(0, src.lastIndexOf("/"));
+        }
         Path srcPath = Paths.get(realSrc);
         long filedId = FileUtil.getFileId(srcPath);
         if (!fileId_fileName.containsValue(src)) {
@@ -49,13 +56,14 @@ public class DFSClient implements java.io.Closeable {
             fileId_fileName.put(filedId, realSrc);
         }
         if (!Files.exists(srcPath)) {
-            LOG.info("--- the src path is not exist.");
+            LOG.info("--- the src path is not exist : " + srcPath.toString());
             return null;
         }
         LOG.info("--- the real src path is : " + realSrc);
         BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
         PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
-        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
+        String pathString = srcPath.toString();
+        byte[] path = pathString.substring(pathString.lastIndexOf("/") + 1, pathString.length()).getBytes(Charsets.UTF_8);
         long length = basicFileAttributes.size();
         boolean isdir = basicFileAttributes.isDirectory();
         short block_replication = 1;
@@ -73,20 +81,32 @@ public class DFSClient implements java.io.Closeable {
         byte[] symlink = null;
         byte storagePolicy = 0;
         HdfsFileStatus fs = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
-        LOG.info("--- " + fs.getGroup() + " :group ; " + fs.getLocalName() + " :localname ; " + fs.getOwner() + " :owner ; " + fs.getSymlink() + " :symlink ; " + fs.getAccessTime() + " : access_time ; " + fs.getBlock_replication() + " :blockreplication ; " + fs.getBlockSize() + " :blocksize ; " + fs.getChildrenNum() + " : childrennum ; " + fs.getFileEncryptionInfo() + " : encryption ; " + fs.getFileId() + " :fileid ; " + fs.getLen() + " : length ; " + fs.getModification_time() + " : modifytime ; " + String.valueOf(fs.getPath()) + " : path ; " + fs.getStoragePolicy() + " : storagepolicy ; " + String.valueOf(fs.getSymlinkInBytes()) + " : symlink");
+        LOG.info("--- " + fs.getGroup() + " :group ; " + fs.getLocalName() + " :localname ; " + fs.getOwner() + " :owner ; " + fs.getSymlink() + " :symlink ; " + fs.getAccessTime() + " : access_time ; " + fs.getBlock_replication() + " :blockreplication ; " + fs.getBlockSize() + " :blocksize ; " + fs.getChildrenNum() + " : childrennum ; " + fs.getFileEncryptionInfo() + " : encryption ; " + fs.getFileId() + " :fileid ; " + fs.getLen() + " : length ; " + fs.getModification_time() + " : modifytime ; " + fs.getStoragePolicy() + " : storagepolicy ; " + String.valueOf(fs.getSymlinkInBytes()) + " : symlink");
         return fs;
     }
 
     public HdfsFileStatus getRealFileInfo(String realSrc) throws IOException {
+        if (realSrc.endsWith("..")) {
+            String tmp = realSrc.substring(0, realSrc.lastIndexOf("/") - 1);
+            realSrc = tmp.substring(0, tmp.lastIndexOf("/"));
+            LOG.info("--- try to get the parent filestatus , the parent is :" + realSrc);
+        }
+        if (realSrc.endsWith("/")) {
+            realSrc = realSrc.substring(0, realSrc.lastIndexOf("/"));
+        }
         Path srcPath = Paths.get(realSrc);
+        if (!Files.exists(srcPath)) {
+            LOG.info("--- the src path is not exist : " + srcPath);
+            return null;
+        }
         long filedId = FileUtil.getFileId(srcPath);
         if (!fileId_fileName.containsValue(realSrc)) {
             fileId_fileName.put(filedId, realSrc);
         }
-        LOG.info("--- the real src path is : " + realSrc);
+        LOG.info("--- the real src path is : " + realSrc.toString());
         BasicFileAttributes basicFileAttributes = Files.readAttributes(srcPath, BasicFileAttributes.class);
         PosixFileAttributes posixFileAttributes = Files.readAttributes(srcPath, PosixFileAttributes.class);
-        byte[] path = srcPath.toAbsolutePath().toString().getBytes();
+        byte[] path = realSrc.substring(realSrc.lastIndexOf("/") + 1, realSrc.length()).getBytes(Charsets.UTF_8);
         long length = basicFileAttributes.size();
         boolean isdir = basicFileAttributes.isDirectory();
         short block_replication = 1;
@@ -103,8 +123,9 @@ public class DFSClient implements java.io.Closeable {
         }
         byte[] symlink = null;
         byte storagePolicy = 0;
-        HdfsFileStatus hdfsFileStatus = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
-        return hdfsFileStatus;
+        HdfsFileStatus fs = new HdfsFileStatus(length, isdir, block_replication, blocksize, modification_time, access_time, permission, owner, group, symlink, path, filedId, childrenNum, feInfo, storagePolicy);
+        LOG.info("--- " + fs.getGroup() + " :group ; " + fs.getLocalName() + " :localname ; " + fs.getOwner() + " :owner ; " + fs.getSymlink() + " :symlink ; " + fs.getAccessTime() + " : access_time ; " + fs.getBlock_replication() + " :blockreplication ; " + fs.getBlockSize() + " :blocksize ; " + fs.getChildrenNum() + " : childrennum ; " + fs.getFileEncryptionInfo() + " : encryption ; " + fs.getFileId() + " :fileid ; " + fs.getLen() + " : length ; " + fs.getModification_time() + " : modifytime ; " + fs.getStoragePolicy() + " : storagepolicy ; " + String.valueOf(fs.getSymlinkInBytes()) + " : symlink");
+        return fs;
     }
 
     /**
@@ -185,20 +206,18 @@ public class DFSClient implements java.io.Closeable {
             throws IOException {
         LOG.info("--- list path src is : " + src);
         File[] files = new File(src).listFiles();
-        HdfsFileStatus[] statuses = new HdfsFileStatus[]{};
+        List<HdfsFileStatus> hdfsFileStatuses = new ArrayList<>();
         if (files.length == 0) {
             return new DirectoryListing(null, 0);
         }
-        int flag = 0;
         for (File file : files) {
             LOG.info("--- list children path src is : " + file.getAbsolutePath());
             HdfsFileStatus status = getRealFileInfo(file.getAbsolutePath());
             if (status != null) {
-                statuses[flag] = status;
-                flag++;
+                hdfsFileStatuses.add(status);
             }
         }
-        return new DirectoryListing(statuses, 0);
+        return new DirectoryListing(hdfsFileStatuses.toArray(new HdfsFileStatus[]{}), 0);
     }
 
     /**
