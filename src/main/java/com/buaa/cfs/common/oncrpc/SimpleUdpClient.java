@@ -1,33 +1,34 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE
- * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- */
+
 package com.buaa.cfs.common.oncrpc;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.channel.socket.nio.NioDatagramChannel;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.mina.core.future.CloseFuture;
+
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.Arrays;
+import java.net.InetSocketAddress;
 
-/**
- * A simple UDP based RPC client which just sends one request to a server.
- */
+
 public class SimpleUdpClient {
+    public static final Log LOG = LogFactory.getLog(SimpleUdpClient.class);
 
     protected final String host;
     protected final int port;
     protected final XDR request;
     protected final boolean oneShot;
     protected final DatagramSocket clientSocket;
+
 
     public SimpleUdpClient(String host, int port, XDR request,
             DatagramSocket clientSocket) {
@@ -44,35 +45,22 @@ public class SimpleUdpClient {
     }
 
     public void run() throws IOException {
-        InetAddress IPAddress = InetAddress.getByName(host);
+
+        EventLoopGroup group = new NioEventLoopGroup();
         byte[] sendData = request.getBytes();
-        byte[] receiveData = new byte[65535];
-        // Use the provided socket if there is one, else just make a new one.
-        DatagramSocket socket = this.clientSocket == null ?
-                new DatagramSocket() : this.clientSocket;
-
+        InetAddress IPAddress = InetAddress.getByName(host);
         try {
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
-                    IPAddress, port);
-            socket.send(sendPacket);
-            socket.setSoTimeout(500);
-            DatagramPacket receivePacket = new DatagramPacket(receiveData,
-                    receiveData.length);
-            socket.receive(receivePacket);
-
-            // Check reply status
-            XDR xdr = new XDR(Arrays.copyOfRange(receiveData, 0,
-                    receivePacket.getLength()));
-            RpcReply reply = RpcReply.read(xdr);
-            if (reply.getState() != RpcReply.ReplyState.MSG_ACCEPTED) {
-                throw new IOException("Request failed: " + reply.getState());
-            }
+            Bootstrap b = new Bootstrap();
+            b.group(group)
+                    .channel(NioDatagramChannel.class)
+                    .option(ChannelOption.SO_BROADCAST, false)
+                    .handler(new SimpleUdpClientHandler(new DatagramPacket(Unpooled.copiedBuffer(sendData), new InetSocketAddress(IPAddress, port))));
+            b.connect(new InetSocketAddress(IPAddress, port)).sync();
+        } catch (InterruptedException e) {
+            LOG.error(e.getMessage());
+            group.shutdownGracefully();
         } finally {
-            // If the client socket was passed in to this UDP client, it's on the
-            // caller of this UDP client to close that socket.
-            if (this.clientSocket == null) {
-                socket.close();
-            }
+            group.shutdownGracefully();
         }
     }
 }

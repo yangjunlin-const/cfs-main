@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -25,11 +25,12 @@ import com.buaa.cfs.conf.NfsConfiguration;
 import com.buaa.cfs.security.UserGroupInformation;
 import com.buaa.cfs.utils.SecurityUtil;
 import com.google.common.annotations.VisibleForTesting;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelHandlerContext;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -42,6 +43,7 @@ import java.util.List;
 /**
  * RPC program corresponding to mountd daemon. See {@link Mountd}.
  */
+@ChannelHandler.Sharable
 public class RpcProgramMountd extends RpcProgram implements MountInterface {
     private static final Log LOG = LogFactory.getLog(RpcProgramMountd.class);
     public static final int PROGRAM = 100005;
@@ -227,7 +229,7 @@ public class RpcProgramMountd extends RpcProgram implements MountInterface {
                     RpcAcceptedReply.AcceptState.PROC_UNAVAIL, new VerifierNone()).write(
                     out);
         }
-        ChannelBuffer buf = ChannelBuffers.wrappedBuffer(out.asReadOnlyWrap().buffer());
+        ByteBuf buf = Unpooled.wrappedBuffer(out.asReadOnlyWrap().buffer());
         RpcResponse rsp = new RpcResponse(buf, info.remoteAddress());
         RpcUtil.sendRpcResponse(ctx, rsp);
     }

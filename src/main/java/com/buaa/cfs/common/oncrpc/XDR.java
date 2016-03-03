@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -14,24 +14,19 @@ package com.buaa.cfs.common.oncrpc;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.commons.io.Charsets;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 
 import java.nio.ByteBuffer;
 
 /**
  * Utility class for building XDR messages based on RFC 4506.
- *
+ * <p/>
  * Key points of the format:
- *
- * <ul>
- * <li>Primitives are stored in big-endian order (i.e., the default byte order
- * of ByteBuffer).</li>
- * <li>Booleans are stored as an integer.</li>
- * <li>Each field in the message is always aligned by 4.</li>
- * </ul>
- *
+ * <p/>
+ * <ul> <li>Primitives are stored in big-endian order (i.e., the default byte order of ByteBuffer).</li> <li>Booleans
+ * are stored as an integer.</li> <li>Each field in the message is always aligned by 4.</li> </ul>
  */
 public final class XDR {
     private static final int DEFAULT_INITIAL_CAPACITY = 256;
@@ -50,8 +45,7 @@ public final class XDR {
     /**
      * Construct a new XDR message buffer.
      *
-     * @param initialCapacity
-     *          the initial capacity of the buffer.
+     * @param initialCapacity the initial capacity of the buffer.
      */
     public XDR(int initialCapacity) {
         this(ByteBuffer.allocate(initialCapacity), State.WRITING);
@@ -67,12 +61,10 @@ public final class XDR {
     }
 
     /**
-     * Wraps a byte array as a read-only XDR message. There's no copy involved,
-     * thus it is the client's responsibility to ensure that the byte array
-     * remains unmodified when using the XDR object.
+     * Wraps a byte array as a read-only XDR message. There's no copy involved, thus it is the client's responsibility
+     * to ensure that the byte array remains unmodified when using the XDR object.
      *
-     * @param src
-     *          the byte array to be wrapped.
+     * @param src the byte array to be wrapped.
      */
     public XDR(byte[] src) {
         this(ByteBuffer.wrap(src).asReadOnlyBuffer(), State.READING);
@@ -226,22 +218,19 @@ public final class XDR {
     }
 
     /** Write an XDR message to a TCP ChannelBuffer */
-    public static ChannelBuffer writeMessageTcp(XDR request, boolean last) {
+    public static ByteBuf writeMessageTcp(XDR request, boolean last) {
         Preconditions.checkState(request.state == XDR.State.WRITING);
         ByteBuffer b = request.buf.duplicate();
         b.flip();
         byte[] fragmentHeader = XDR.recordMark(b.limit(), last);
-        ByteBuffer headerBuf = ByteBuffer.wrap(fragmentHeader);
-
-        // TODO: Investigate whether making a copy of the buffer is necessary.
-        return ChannelBuffers.copiedBuffer(headerBuf, b);
+        return Unpooled.wrappedBuffer(fragmentHeader);
     }
 
     /** Write an XDR message to a UDP ChannelBuffer */
-    public static ChannelBuffer writeMessageUdp(XDR response) {
+    public static ByteBuf writeMessageUdp(XDR response) {
         Preconditions.checkState(response.state == XDR.State.READING);
         // TODO: Investigate whether making a copy of the buffer is necessary.
-        return ChannelBuffers.copiedBuffer(response.buf);
+        return Unpooled.wrappedBuffer(response.buf);
     }
 
     public static int fragmentSize(byte[] mark) {

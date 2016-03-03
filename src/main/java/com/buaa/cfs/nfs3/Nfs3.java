@@ -6,7 +6,9 @@ import com.buaa.cfs.mount.Mountd;
 import com.buaa.cfs.utils.StringUtils;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.DatagramSocket;
+import java.nio.channels.FileChannel;
 
 /**
  * Nfs server. Supports NFS v3 using {@link RpcProgramNfs3}. Currently Mountd program is also started inside this class.
@@ -32,7 +34,9 @@ public class Nfs3 extends Nfs3Base {
 
     public void startServiceInternal(boolean register) throws IOException {
         mountd.start(register); // Start mountd
+        LOG.info("--- mount start success.");
         start(register);
+        LOG.info("--- nfs3 start success.");
     }
 
     static void startService(String[] args,

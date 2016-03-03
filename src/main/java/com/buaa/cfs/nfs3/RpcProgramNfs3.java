@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -20,7 +20,6 @@ import com.buaa.cfs.conf.NfsConfiguration;
 import com.buaa.cfs.constant.*;
 import com.buaa.cfs.exception.AccessControlException;
 import com.buaa.cfs.exception.AuthorizationException;
-import com.buaa.cfs.exception.DirectoryListingStartAfterNotFoundException;
 import com.buaa.cfs.fs.*;
 import com.buaa.cfs.fs.permission.FsPermission;
 import com.buaa.cfs.net.DNS;
@@ -33,12 +32,13 @@ import com.buaa.cfs.utils.FileUtil;
 import com.buaa.cfs.utils.JvmPauseMonitor;
 import com.buaa.cfs.utils.SecurityUtil;
 import com.google.common.annotations.VisibleForTesting;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
 
 import static com.buaa.cfs.constant.Nfs3Constant.*;
 
@@ -57,6 +57,7 @@ import java.util.EnumSet;
 /**
  * RPC program corresponding to nfs daemon. See {@link Nfs3}.
  */
+@ChannelHandler.Sharable
 public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
     public static final int DEFAULT_UMASK = 0022;
     public static final FsPermission umask = new FsPermission(
@@ -2047,7 +2048,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
                         RpcDeniedReply.RejectState.AUTH_ERROR, new VerifierNone());
                 rdr.write(reply);
 
-                ChannelBuffer buf = ChannelBuffers.wrappedBuffer(reply.asReadOnlyWrap()
+                ByteBuf buf = Unpooled.wrappedBuffer(reply.asReadOnlyWrap()
                         .buffer());
                 RpcResponse rsp = new RpcResponse(buf, info.remoteAddress());
                 RpcUtil.sendRpcResponse(ctx, rsp);
@@ -2166,7 +2167,7 @@ public class RpcProgramNfs3 extends RpcProgram implements Nfs3Interface {
         }
         // TODO: currently we just return VerifierNone
         out = response.serialize(out, xid, new VerifierNone());
-        ChannelBuffer buf = ChannelBuffers.wrappedBuffer(out.asReadOnlyWrap()
+        ByteBuf buf = Unpooled.wrappedBuffer(out.asReadOnlyWrap()
                 .buffer());
         RpcResponse rsp = new RpcResponse(buf, info.remoteAddress());
 

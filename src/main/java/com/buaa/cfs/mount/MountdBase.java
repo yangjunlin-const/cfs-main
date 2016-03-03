@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -68,6 +68,7 @@ abstract public class MountdBase {
             terminate(1, e);
         }
         udpBoundPort = udpServer.getBoundPort();
+        LOG.info("--- start mount udp server success.");
     }
 
     /* Start TCP server */
@@ -87,17 +88,21 @@ abstract public class MountdBase {
             terminate(1, e);
         }
         tcpBoundPort = tcpServer.getBoundPort();
+        LOG.info("--- start mount tcp server success.");
     }
 
     public void start(boolean register) {
         startUDPServer();
         startTCPServer();
+        LOG.info("--- start mount tcp and udp server success : register is : " + register);
         if (register) {
             ShutdownHookManager.get().addShutdownHook(new Unregister(),
                     SHUTDOWN_HOOK_PRIORITY);
             try {
                 rpcProgram.register(PortmapMapping.TRANSPORT_UDP, udpBoundPort);
+                LOG.info("--- mount udp register success.");
                 rpcProgram.register(PortmapMapping.TRANSPORT_TCP, tcpBoundPort);
+                LOG.info("--- mount tcp register success.");
             } catch (Throwable e) {
                 LOG.fatal("Failed to register the MOUNT service.", e);
                 terminate(1, e);

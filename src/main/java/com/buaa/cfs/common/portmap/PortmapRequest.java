@@ -29,11 +29,11 @@ public class PortmapRequest {
 
     public static XDR create(PortmapMapping mapping, boolean set) {
         XDR request = new XDR();
-        int procedure = set ? RpcProgramPortmap.PMAPPROC_SET
-                : RpcProgramPortmap.PMAPPROC_UNSET;
+        int procedure = set ? RpcProgramPortmapTCP.PMAPPROC_SET
+                : RpcProgramPortmapTCP.PMAPPROC_UNSET;
         RpcCall call = RpcCall.getInstance(
-                RpcUtil.getNewXid(String.valueOf(RpcProgramPortmap.PROGRAM)),
-                RpcProgramPortmap.PROGRAM, RpcProgramPortmap.VERSION, procedure,
+                RpcUtil.getNewXid(String.valueOf(RpcProgramPortmapTCP.PROGRAM)),
+                RpcProgramPortmapTCP.PROGRAM, RpcProgramPortmapTCP.VERSION, procedure,
                 new CredentialsNone(), new VerifierNone());
         call.write(request);
         return mapping.serialize(request);

@@ -3,32 +3,33 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package com.buaa.cfs.common.oncrpc;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.net.SocketAddress;
 
 /**
- * RpcInfo records all contextual information of an RPC message. It contains
- * the RPC header, the parameters, and the information of the remote peer.
+ * RpcInfo records all contextual information of an RPC message. It contains the RPC header, the parameters, and the
+ * information of the remote peer.
  */
 public final class RpcInfo {
     private final RpcMessage header;
-    private final ChannelBuffer data;
+    private final ByteBuf data;
     private final Channel channel;
     private final SocketAddress remoteAddress;
 
-    public RpcInfo(RpcMessage header, ChannelBuffer data,
+    public RpcInfo(RpcMessage header, ByteBuf data,
             ChannelHandlerContext channelContext, Channel channel,
             SocketAddress remoteAddress) {
         this.header = header;
@@ -41,7 +42,7 @@ public final class RpcInfo {
         return header;
     }
 
-    public ChannelBuffer data() {
+    public ByteBuf data() {
         return data;
     }
 

@@ -3,23 +3,26 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package com.buaa.cfs.common.oncrpc;
 
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
 
 /**
  * Simple UDP server implemented using netty.
@@ -28,55 +31,52 @@ public class SimpleTcpServer {
     public static final Log LOG = LogFactory.getLog(SimpleTcpServer.class);
     protected final int port;
     protected int boundPort = -1; // Will be set after server starts
-    protected final SimpleChannelUpstreamHandler rpcProgram;
+    protected final SimpleChannelInboundHandler rpcProgram;
     private ServerBootstrap server;
-    private Channel ch;
+    private EventLoopGroup tcpbossGroup;
+    private EventLoopGroup tcpworkerGroup;
 
     /** The maximum number of I/O worker threads */
     protected final int workerCount;
 
     /**
-     * @param port TCP port where to start the server at
-     * @param program RPC program corresponding to the server
+     * @param port        TCP port where to start the server at
+     * @param program     RPC program corresponding to the server
      * @param workercount Number of worker threads
      */
     public SimpleTcpServer(int port, RpcProgram program, int workercount) {
         this.port = port;
         this.rpcProgram = program;
         this.workerCount = workercount;
+        tcpbossGroup = new NioEventLoopGroup(1);
+        if (workercount > 0) {
+            tcpworkerGroup = new NioEventLoopGroup(workercount);
+        } else {
+            tcpworkerGroup = new NioEventLoopGroup();
+        }
     }
 
-    public void run() {
-        // Configure the Server.
-        ChannelFactory factory;
-        if (workerCount == 0) {
-            // Use default workers: 2 * the number of available processors
-            factory = new NioServerSocketChannelFactory(
-                    Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
-        } else {
-            factory = new NioServerSocketChannelFactory(
-                    Executors.newCachedThreadPool(), Executors.newCachedThreadPool(),
-                    workerCount);
-        }
+    public void run() throws InterruptedException {
+        server = new ServerBootstrap();
+        server.group(tcpbossGroup, tcpworkerGroup)
+                .channel(NioServerSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .handler(new LoggingHandler(LogLevel.INFO))
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel ch) {
+                        ChannelPipeline p = ch.pipeline();
+                        p.addLast(RpcUtil.constructRpcFrameDecoder());
+                        p.addLast(new RpcMessageParserStage());
+                        p.addLast(rpcProgram);
+                        p.addLast(new RpcTcpResponseStage());
 
-        server = new ServerBootstrap(factory);
-        server.setPipelineFactory(new ChannelPipelineFactory() {
-
-            @Override
-            public ChannelPipeline getPipeline() throws Exception {
-                return Channels.pipeline(RpcUtil.constructRpcFrameDecoder(),
-                        RpcUtil.STAGE_RPC_MESSAGE_PARSER, rpcProgram,
-                        RpcUtil.STAGE_RPC_TCP_RESPONSE);
-            }
-        });
-        server.setOption("child.tcpNoDelay", true);
-        server.setOption("child.keepAlive", true);
-
-        // Listen to TCP port
-        ch = server.bind(new InetSocketAddress(port));
-        InetSocketAddress socketAddr = (InetSocketAddress) ch.getLocalAddress();
-        boundPort = socketAddr.getPort();
-
+                    }
+                });
+        ChannelFuture f = server.bind(new InetSocketAddress(port)).sync();
+        boundPort = port;
+//        f.channel().closeFuture().sync();
         LOG.info("Started listening to TCP requests at port " + boundPort + " for "
                 + rpcProgram + " with workerCount " + workerCount);
     }
@@ -87,11 +87,11 @@ public class SimpleTcpServer {
     }
 
     public void shutdown() {
-        if (ch != null) {
-            ch.close().awaitUninterruptibly();
+        if (tcpworkerGroup != null) {
+            tcpworkerGroup.shutdownGracefully();
         }
-        if (server != null) {
-            server.releaseExternalResources();
+        if (tcpbossGroup != null) {
+            tcpbossGroup.shutdownGracefully();
         }
     }
 }

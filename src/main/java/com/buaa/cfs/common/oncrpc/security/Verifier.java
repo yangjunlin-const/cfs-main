@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -13,14 +13,16 @@
 package com.buaa.cfs.common.oncrpc.security;
 
 import com.buaa.cfs.common.oncrpc.XDR;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
- * Base class for verifier. Currently our authentication only supports 3 types
- * of auth flavors: {@link RpcAuthInfo.AuthFlavor#AUTH_NONE}, {@link RpcAuthInfo.AuthFlavor#AUTH_SYS},
- * and {@link RpcAuthInfo.AuthFlavor#RPCSEC_GSS}. Thus for verifier we only need to handle
- * AUTH_NONE and RPCSEC_GSS
+ * Base class for verifier. Currently our authentication only supports 3 types of auth flavors: {@link
+ * RpcAuthInfo.AuthFlavor#AUTH_NONE}, {@link RpcAuthInfo.AuthFlavor#AUTH_SYS}, and {@link
+ * RpcAuthInfo.AuthFlavor#RPCSEC_GSS}. Thus for verifier we only need to handle AUTH_NONE and RPCSEC_GSS
  */
 public abstract class Verifier extends RpcAuthInfo {
+    public static final Log LOG = LogFactory.getLog(Verifier.class);
 
     public static final Verifier VERIFIER_NONE = new VerifierNone();
 
@@ -31,9 +33,11 @@ public abstract class Verifier extends RpcAuthInfo {
     /** Read both AuthFlavor and the verifier from the XDR */
     public static Verifier readFlavorAndVerifier(XDR xdr) {
         AuthFlavor flavor = AuthFlavor.fromValue(xdr.readInt());
+        LOG.info("--- flavor : " + flavor.getValue());
         final Verifier verifer;
         if (flavor == AuthFlavor.AUTH_NONE) {
             verifer = new VerifierNone();
+            LOG.info("--- verifer none.");
         } else if (flavor == AuthFlavor.RPCSEC_GSS) {
             verifer = new VerifierGSS();
         } else {
@@ -41,6 +45,7 @@ public abstract class Verifier extends RpcAuthInfo {
                     + flavor);
         }
         verifer.read(xdr);
+        LOG.info("--- read verifier success : " + verifer);
         return verifer;
     }
 

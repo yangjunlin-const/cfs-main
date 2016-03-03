@@ -3,37 +3,37 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package com.buaa.cfs.common.portmap;
 
+import com.buaa.cfs.common.oncrpc.RpcMessageParserStage;
 import com.buaa.cfs.common.oncrpc.RpcProgram;
+import com.buaa.cfs.common.oncrpc.RpcTcpResponseStage;
 import com.buaa.cfs.common.oncrpc.RpcUtil;
 import com.buaa.cfs.utils.StringUtils;
-import com.google.common.annotations.VisibleForTesting;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.HashedWheelTimer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.bootstrap.ConnectionlessBootstrap;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.nio.NioDatagramChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.timeout.IdleStateHandler;
-import org.jboss.netty.util.HashedWheelTimer;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -43,12 +43,13 @@ final class Portmap {
     private static final Log LOG = LogFactory.getLog(Portmap.class);
     private static final int DEFAULT_IDLE_TIME_MILLISECONDS = 5000;
 
-    private ConnectionlessBootstrap udpServer;
+    private Bootstrap udpServer;
     private ServerBootstrap tcpServer;
-    private ChannelGroup allChannels = new DefaultChannelGroup();
-    private Channel udpChannel;
-    private Channel tcpChannel;
-    private final RpcProgramPortmap handler = new RpcProgramPortmap(allChannels);
+    EventLoopGroup tcpbossGroup = new NioEventLoopGroup(1);
+    EventLoopGroup tcpworkerGroup = new NioEventLoopGroup(1);
+    EventLoopGroup udpworkerGroup = new NioEventLoopGroup(1);
+    private RpcProgramPortmapTCP handlerTCP = new RpcProgramPortmapTCP();
+    private RpcProgramPortmapUDP handlerUDP = new RpcProgramPortmapUDP();
 
     public static void main(String[] args) {
         StringUtils.startupShutdownMessage(Portmap.class, args, LOG);
@@ -66,56 +67,55 @@ final class Portmap {
     }
 
     void shutdown() {
-        allChannels.close().awaitUninterruptibly();
-        tcpServer.releaseExternalResources();
-        udpServer.releaseExternalResources();
-    }
-
-    @VisibleForTesting
-    SocketAddress getTcpServerLocalAddress() {
-        return tcpChannel.getLocalAddress();
-    }
-
-    @VisibleForTesting
-    SocketAddress getUdpServerLoAddress() {
-        return udpChannel.getLocalAddress();
-    }
-
-    @VisibleForTesting
-    RpcProgramPortmap getHandler() {
-        return handler;
+        tcpbossGroup.shutdownGracefully();
+        tcpworkerGroup.shutdownGracefully();
+        udpworkerGroup.shutdownGracefully();
     }
 
     void start(final int idleTimeMilliSeconds, final SocketAddress tcpAddress,
-            final SocketAddress udpAddress) {
+            final SocketAddress udpAddress) throws InterruptedException {
+        SimpleChannelInboundHandler<Object> STAGE_RPC_MESSAGE_PARSER = new RpcMessageParserStage();
+        tcpServer = new ServerBootstrap();
+        tcpServer.group(tcpbossGroup, tcpworkerGroup)
+                .channel(NioServerSocketChannel.class)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .handler(new LoggingHandler(LogLevel.INFO))
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+//                    private final IdleStateHandler idleStateHandler = new IdleStateHandler(
+//                            0, 0, idleTimeMilliSeconds, TimeUnit.MILLISECONDS);
 
-        tcpServer = new ServerBootstrap(new NioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
-        tcpServer.setPipelineFactory(new ChannelPipelineFactory() {
-            private final HashedWheelTimer timer = new HashedWheelTimer();
-            private final IdleStateHandler idleStateHandler = new IdleStateHandler(
-                    timer, 0, 0, idleTimeMilliSeconds, TimeUnit.MILLISECONDS);
+                    @Override
+                    public void initChannel(SocketChannel ch) {
+                        ChannelPipeline p = ch.pipeline();
+                        p.addLast(RpcUtil.constructRpcFrameDecoder());
+                        p.addLast(new RpcMessageParserStage());
+//                        p.addLast(new IdleStateHandler(
+//                                0, 0, idleTimeMilliSeconds, TimeUnit.MILLISECONDS));
+                        p.addLast(handlerTCP);
+                        p.addLast(new RpcTcpResponseStage());
 
-            @Override
-            public ChannelPipeline getPipeline() throws Exception {
-                return Channels.pipeline(RpcUtil.constructRpcFrameDecoder(),
-                        RpcUtil.STAGE_RPC_MESSAGE_PARSER, idleStateHandler, handler,
-                        RpcUtil.STAGE_RPC_TCP_RESPONSE);
-            }
-        });
+                    }
+                });
+        ChannelFuture f = tcpServer.bind(tcpAddress).sync();
+//        f.channel().closeFuture().sync();
 
-        udpServer = new ConnectionlessBootstrap(new NioDatagramChannelFactory(
-                Executors.newCachedThreadPool()));
+        udpServer = new Bootstrap();
+        udpServer.group(udpworkerGroup)
+                .channel(NioDatagramChannel.class)
+                .option(ChannelOption.SO_BROADCAST, true)
+                .handler(new ChannelInitializer<DatagramChannel>() {
+                    @Override
+                    public void initChannel(DatagramChannel ch) {
+                        ChannelPipeline p = ch.pipeline();
+//                        p.addLast(RpcUtil.constructRpcFrameDecoder());
+//                        p.addLast(RpcUtil.STAGE_RPC_MESSAGE_PARSER);
+                        p.addLast(handlerUDP);
+//                        p.addLast(RpcUtil.STAGE_RPC_UDP_RESPONSE);
 
-        udpServer.setPipeline(Channels.pipeline(RpcUtil.STAGE_RPC_MESSAGE_PARSER,
-                handler, RpcUtil.STAGE_RPC_UDP_RESPONSE));
-
-        tcpChannel = tcpServer.bind(tcpAddress);
-        udpChannel = udpServer.bind(udpAddress);
-        allChannels.add(tcpChannel);
-        allChannels.add(udpChannel);
-
-        LOG.info("Portmap server started at tcp://" + tcpChannel.getLocalAddress()
-                + ", udp://" + udpChannel.getLocalAddress());
+                    }
+                });
+        ChannelFuture udpFuture = udpServer.bind(udpAddress).sync();
+//        udpFuture.channel().closeFuture().sync();
+        LOG.info("Portmap server started at tcp://" + ", udp://");
     }
 }

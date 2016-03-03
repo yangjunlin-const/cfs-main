@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -16,13 +16,12 @@ import com.buaa.cfs.common.oncrpc.security.Verifier;
 import com.buaa.cfs.common.oncrpc.security.VerifierNone;
 import com.buaa.cfs.common.portmap.PortmapMapping;
 import com.buaa.cfs.common.portmap.PortmapRequest;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -33,7 +32,7 @@ import java.net.SocketAddress;
  * Class for writing RPC server programs based on RFC 1050. Extend this class and implement {@link #handleInternal} to
  * handle the requests received.
  */
-public abstract class RpcProgram extends SimpleChannelUpstreamHandler {
+public abstract class RpcProgram extends SimpleChannelInboundHandler<Object> {
     static final Log LOG = LogFactory.getLog(RpcProgram.class);
     public static final int RPCB_PORT = 111;
     private final String program;
@@ -136,9 +135,9 @@ public abstract class RpcProgram extends SimpleChannelUpstreamHandler {
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
+    public void channelRead0(ChannelHandlerContext ctx, Object e)
             throws Exception {
-        RpcInfo info = (RpcInfo) e.getMessage();
+        RpcInfo info = (RpcInfo) e;
         RpcCall call = (RpcCall) info.header();
 
         SocketAddress remoteAddress = info.remoteAddress();
@@ -196,7 +195,7 @@ public abstract class RpcProgram extends SimpleChannelUpstreamHandler {
             out.writeInt(lowProgVersion);
             out.writeInt(highProgVersion);
         }
-        ChannelBuffer b = ChannelBuffers.wrappedBuffer(out.asReadOnlyWrap()
+        ByteBuf b = Unpooled.wrappedBuffer(out.asReadOnlyWrap()
                 .buffer());
         RpcResponse rsp = new RpcResponse(b, remoteAddress);
         RpcUtil.sendRpcResponse(ctx, rsp);
@@ -209,7 +208,7 @@ public abstract class RpcProgram extends SimpleChannelUpstreamHandler {
                 RpcReply.ReplyState.MSG_DENIED,
                 RpcDeniedReply.RejectState.AUTH_ERROR, new VerifierNone());
         reply.write(out);
-        ChannelBuffer buf = ChannelBuffers.wrappedBuffer(out.asReadOnlyWrap()
+        ByteBuf buf = Unpooled.wrappedBuffer(out.asReadOnlyWrap()
                 .buffer());
         RpcResponse rsp = new RpcResponse(buf, remoteAddress);
         RpcUtil.sendRpcResponse(ctx, rsp);

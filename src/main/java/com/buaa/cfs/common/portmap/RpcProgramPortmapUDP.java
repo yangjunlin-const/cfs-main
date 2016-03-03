@@ -1,35 +1,34 @@
+package com.buaa.cfs.common.portmap;
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE
  * file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * <p>
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package com.buaa.cfs.common.portmap;
 
 import com.buaa.cfs.common.oncrpc.*;
+import com.buaa.cfs.common.oncrpc.security.VerifierNone;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.socket.DatagramPacket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import com.buaa.cfs.common.oncrpc.security.VerifierNone;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.handler.timeout.IdleState;
-import org.jboss.netty.handler.timeout.IdleStateAwareChannelUpstreamHandler;
-import org.jboss.netty.handler.timeout.IdleStateEvent;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-final class RpcProgramPortmap extends IdleStateAwareChannelUpstreamHandler {
+@ChannelHandler.Sharable
+final class RpcProgramPortmapUDP extends SimpleChannelInboundHandler<DatagramPacket> {
+
     static final int PROGRAM = 100000;
     static final int VERSION = 2;
 
@@ -40,15 +39,13 @@ final class RpcProgramPortmap extends IdleStateAwareChannelUpstreamHandler {
     static final int PMAPPROC_DUMP = 4;
     static final int PMAPPROC_GETVERSADDR = 9;
 
-    private static final Log LOG = LogFactory.getLog(RpcProgramPortmap.class);
+    private static final Log LOG = LogFactory.getLog(RpcProgramPortmapUDP.class);
 
-    private final ConcurrentHashMap<String, PortmapMapping> map = new ConcurrentHashMap<String, PortmapMapping>();
+    public final static ConcurrentHashMap<String, PortmapMapping> map = new ConcurrentHashMap<String, PortmapMapping>();
 
     /** ChannelGroup that remembers all active channels for gracefully shutdown. */
-    private final ChannelGroup allChannels;
 
-    RpcProgramPortmap(ChannelGroup allChannels) {
-        this.allChannels = allChannels;
+    RpcProgramPortmapUDP() {
         PortmapMapping m = new PortmapMapping(PROGRAM, VERSION,
                 PortmapMapping.TRANSPORT_TCP, RpcProgram.RPCB_PORT);
         PortmapMapping m1 = new PortmapMapping(PROGRAM, VERSION,
@@ -133,17 +130,22 @@ final class RpcProgramPortmap extends IdleStateAwareChannelUpstreamHandler {
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
+    public void channelRead0(ChannelHandlerContext ctx, DatagramPacket e)
             throws Exception {
+        LOG.info("--- get udp portmap message : " + e.content());
+        XDR in1 = new XDR(e.content().nioBuffer(), XDR.State.READING);
+        RpcCall callHeader = RpcCall.read(in1);
+        ByteBuf dataBuffer = Unpooled.wrappedBuffer(in1.buffer()
+                .slice());
+        RpcInfo info = new RpcInfo(callHeader, dataBuffer, ctx, ctx.channel(), e.sender());
 
-        RpcInfo info = (RpcInfo) e.getMessage();
         RpcCall rpcCall = (RpcCall) info.header();
         final int portmapProc = rpcCall.getProcedure();
         int xid = rpcCall.getXid();
-        XDR in = new XDR(info.data().toByteBuffer().asReadOnlyBuffer(),
+        XDR in = new XDR(info.data().nioBuffer(),
                 XDR.State.READING);
         XDR out = new XDR();
-
+        LOG.info("--- portmap proc is : " + portmapProc);
         if (portmapProc == PMAPPROC_NULL) {
             out = nullOp(xid, in, out);
         } else if (portmapProc == PMAPPROC_SET) {
@@ -162,30 +164,22 @@ final class RpcProgramPortmap extends IdleStateAwareChannelUpstreamHandler {
                     RpcAcceptedReply.AcceptState.PROC_UNAVAIL, new VerifierNone());
             reply.write(out);
         }
-
-        ChannelBuffer buf = ChannelBuffers.wrappedBuffer(out.asReadOnlyWrap()
+        ByteBuf buf1 = Unpooled.wrappedBuffer(out.asReadOnlyWrap()
                 .buffer());
-        RpcResponse rsp = new RpcResponse(buf, info.remoteAddress());
-        RpcUtil.sendRpcResponse(ctx, rsp);
+        ctx.writeAndFlush(new DatagramPacket(buf1, e.sender()));
     }
 
-    @Override
-    public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e)
-            throws Exception {
-        allChannels.add(e.getChannel());
-    }
+//    @Override
+//    public void channelIdle(ChannelHandlerContext ctx, IdleStateEvent e)
+//            throws Exception {
+//        if (e.getState() == IdleState.ALL_IDLE) {
+//            e.getChannel().close();
+//        }
+//    }
 
     @Override
-    public void channelIdle(ChannelHandlerContext ctx, IdleStateEvent e)
-            throws Exception {
-        if (e.getState() == IdleState.ALL_IDLE) {
-            e.getChannel().close();
-        }
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        LOG.warn("Encountered ", e.getCause());
-        e.getChannel().close();
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) {
+        LOG.warn("exceptionCaught : " + throwable.getLocalizedMessage());
+        ctx.channel().close();
     }
 }
