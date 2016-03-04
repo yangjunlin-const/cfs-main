@@ -19,7 +19,6 @@ public class CfsServerHandler extends SimpleChannelInboundHandler {
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         CfsProto.CfsMessage cfsMessage = (CfsProto.CfsMessage) msg;
-
 //        Message.OpMessage response = (Message.OpMessage) msg;
 //        long count = atomicLong.incrementAndGet();
 //        Message.OpMessage.Builder builder = new Message.OpMessage.Builder().setName(response.getName()).setAge(response.getAge()).setCount(++count);

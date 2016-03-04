@@ -11,14 +11,10 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-/**
- * Created by on 12/24/15.
- */
 public class CfsClient {
     private static Log LOG = LogFactory.getLog(CfsClient.class);
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
     private Bootstrap bootstrap = new Bootstrap();
-
     public void sendMessage(final String host, final int port,
             final ChannelHandlerAdapter handler) {
         bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
@@ -32,7 +28,6 @@ public class CfsClient {
                 channel.pipeline().addLast(handler);
             }
         });
-
         try {
             ChannelFuture f = bootstrap.connect(host, port).sync();
 //            f.channel().closeFuture().sync();
