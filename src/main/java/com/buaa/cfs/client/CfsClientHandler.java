@@ -1,26 +1,22 @@
-//package com.buaa.cfs.client;
-//
-//import io.netty.channel.ChannelFuture;
-//import io.netty.channel.ChannelHandlerAdapter;
-//import io.netty.channel.ChannelHandlerContext;
-//import io.netty.util.ReferenceCountUtil;
-//import org.apache.commons.logging.Log;
-//import org.apache.commons.logging.LogFactory;
-//import org.apache.log4j.Logger;
-//
-///**
-// * Created by on 12/24/15.
-// */
-//public class CfsClientHandler extends ChannelHandlerAdapter {
-//    private static Log LOG = LogFactory.getLog(CfsClientHandler.class);
-//
+package com.buaa.cfs.client;
+
+import io.netty.channel.ChannelHandlerAdapter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+/**
+ * Created by on 12/24/15.
+ */
+public class CfsClientHandler extends ChannelHandlerAdapter {
+    private static Log LOG = LogFactory.getLog(CfsClientHandler.class);
+
 //    private Message.OpMessage message;
-//
+
 //    private boolean isSuccess = false;
 //
-//    public CfsClientHandler(Message.OpMessage message) {
-//        this.message = message;
-//    }
+////    public CfsClientHandler(Message.OpMessage message) {
+////        this.message = message;
+////    }
 //
 //    @Override
 //    public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -70,4 +66,4 @@
 //    public Message.OpMessage getMessage() {
 //        return message;
 //    }
-//}
+}
