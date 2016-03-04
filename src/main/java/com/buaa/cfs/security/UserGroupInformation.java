@@ -12,7 +12,7 @@
  */
 package com.buaa.cfs.security;
 
-import com.buaa.cfs.common.oncrpc.security.Credentials;
+import com.buaa.cfs.nfs.common.oncrpc.security.Credentials;
 import com.buaa.cfs.conf.Configuration;
 import com.buaa.cfs.security.token.Token;
 import com.buaa.cfs.security.token.TokenIdentifier;
@@ -20,8 +20,6 @@ import com.buaa.cfs.utils.KerberosUtil;
 import com.buaa.cfs.utils.SecurityUtil;
 import com.buaa.cfs.utils.Shell;
 import com.buaa.cfs.utils.Time;
-import com.buaa.cfs.constant.CommonConfigurationKeys;
-import com.buaa.cfs.constant.CommonConfigurationKeysPublic;
 
 import static com.buaa.cfs.constant.PlatformName.IBM_JAVA;
 
@@ -42,7 +40,6 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.*;

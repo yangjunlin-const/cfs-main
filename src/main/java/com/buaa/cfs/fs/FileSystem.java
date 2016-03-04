@@ -12,7 +12,7 @@
  */
 package com.buaa.cfs.fs;
 
-import com.buaa.cfs.common.oncrpc.security.Credentials;
+import com.buaa.cfs.nfs.common.oncrpc.security.Credentials;
 import com.buaa.cfs.conf.Configuration;
 import com.buaa.cfs.conf.Configured;
 import com.buaa.cfs.constant.CommonConfigurationKeys;

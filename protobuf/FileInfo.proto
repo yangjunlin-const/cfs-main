@@ -1,0 +1,25 @@
+option java_package = "com.buaa.cfs.protobufer";
+
+option java_outer_classname = "CfsProtoReq";
+
+message BlockInfo {
+    required string fileId = 1;
+    required string bolckId = 2;
+    required int64 blockSize = 3;
+    required string crc64_value = 4;
+    required bytes value = 5;
+    required bool eof = 6;
+}
+
+message FileInfo {
+    required string fileId = 1;
+    required int64 fileSize = 2;
+    required string md5_value = 3;
+    required int32 block_num = 4;
+}
+
+message CfsMessage {
+    optional FileInfo fileInfo = 1;
+    optional BlockInfo blockInfo = 2;
+    required string id = 3;
+}
