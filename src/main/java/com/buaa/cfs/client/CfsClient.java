@@ -1,33 +1,47 @@
 package com.buaa.cfs.client;
 
+import com.buaa.cfs.protobufer.CfsProto;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+/**
+ * Created by root on 3/4/16.
+ */
 public class CfsClient {
-    private static Log LOG = LogFactory.getLog(CfsClient.class);
-    private EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-    private Bootstrap bootstrap = new Bootstrap();
-    public void sendMessage(final String host, final int port,
+    private static Log log = LogFactory.getLog(CfsClient.class);
+    private static EventLoopGroup eventLoopGroup;
+    private static Bootstrap bootstrap;
+
+    static {
+        eventLoopGroup = new NioEventLoopGroup();
+        bootstrap = new Bootstrap();
+        bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class)
+                .option(ChannelOption.TCP_NODELAY, true);
+    }
+
+    public static void sendMessage(final String host, final int port,
             final ChannelHandlerAdapter handler) {
-        bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.TCP_NODELAY, true).option(ChannelOption.SO_KEEPALIVE, true).handler(new ChannelInitializer<SocketChannel>() {
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ProtobufVarint32FrameDecoder());
-//                channel.pipeline().addLast(
-//                        new ProtobufDecoder(Message.OpMessage.getDefaultInstance()));
+                channel.pipeline().addLast(
+                        new ProtobufDecoder(CfsProto.CfsMessage.getDefaultInstance()));
                 channel.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
                 channel.pipeline().addLast(new ProtobufEncoder());
                 channel.pipeline().addLast(handler);
             }
         });
+
         try {
             ChannelFuture f = bootstrap.connect(host, port).sync();
 //            f.channel().closeFuture().sync();
@@ -40,6 +54,8 @@ public class CfsClient {
                 }
             });*/
         } catch (InterruptedException e) {
+            log.error(e.getMessage());
         }
     }
+
 }
