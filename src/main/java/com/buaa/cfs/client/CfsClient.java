@@ -1,6 +1,6 @@
 package com.buaa.cfs.client;
 
-import com.buaa.cfs.protobufer.CfsProto;
+import com.buaa.cfs.protobufer.CfsProtoResp;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -12,6 +12,9 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import java.io.File;
+import java.nio.channels.FileChannel;
 
 /**
  * Created by root on 3/4/16.
@@ -35,7 +38,7 @@ public class CfsClient {
             protected void initChannel(SocketChannel channel) throws Exception {
                 channel.pipeline().addLast(new ProtobufVarint32FrameDecoder());
                 channel.pipeline().addLast(
-                        new ProtobufDecoder(CfsProto.CfsMessage.getDefaultInstance()));
+                        new ProtobufDecoder(CfsProtoResp.respMessage.getDefaultInstance()));
                 channel.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
                 channel.pipeline().addLast(new ProtobufEncoder());
                 channel.pipeline().addLast(handler);

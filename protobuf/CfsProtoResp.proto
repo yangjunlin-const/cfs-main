@@ -1,0 +1,55 @@
+option java_package = "com.buaa.cfs.protobufer";
+
+option java_outer_classname = "CfsProtoResp";
+
+message BlockInfo {
+    required string fileId = 1;
+    required string blockId = 2;
+    required int64 size = 3;
+    required string crc64_value = 4;
+    required bytes value = 5;
+    required bool eof = 6;
+}
+
+enum FsAction {
+    NONE = 0;
+    EXECUTE = 1;
+    WRITE = 2;
+    WRITE_EXECUTE = 3;
+    READ = 4;
+    READ_EXECUTE = 5;
+    READ_WRITE = 6;
+    ALL = 7;
+}
+
+message FsPermission {
+    optional FsAction useraction = 1 [default = ALL];
+    optional FsAction groupaction = 2 [default = ALL];
+    optional FsAction otheraction = 3 [default = ALL];
+    optional bool stickyBit = 4;
+}
+
+message FileInfo {
+    required int64 fileId = 1;
+    required bytes path = 2;
+    optional bytes symlink = 3;
+    optional int64 length = 4;
+    required bool isdir = 5;
+    optional int32 block_replication = 6;
+    optional int64 blocksize = 7;
+    optional int64 modification_time = 8;
+    optional int64 access_time = 9;
+    optional FsPermission permission = 10;
+    required string owner = 11;
+    required string user_group = 12;
+    optional int32 childrenNum = 13;
+    optional int64 fileSize = 14;
+    optional string md5_value = 15;
+    optional int32 block_num = 16;
+}
+
+message respMessage {
+    optional FileInfo fileInfo = 1;
+    optional BlockInfo blockInfo = 2;
+    optional string id = 3;
+}

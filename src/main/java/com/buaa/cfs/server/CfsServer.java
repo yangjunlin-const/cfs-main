@@ -1,6 +1,6 @@
 package com.buaa.cfs.server;
 
-import com.buaa.cfs.protobufer.CfsProto;
+import com.buaa.cfs.protobufer.CfsProtoReq;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -31,13 +31,14 @@ public class CfsServer {
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, 100)
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.TCP_NODELAY, true)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline().addLast(new ProtobufVarint32FrameDecoder());
-                        channel.pipeline().addLast(new ProtobufDecoder(CfsProto.CfsMessage.getDefaultInstance()));
+                        channel.pipeline().addLast(new ProtobufDecoder(CfsProtoReq.reqMessage.getDefaultInstance()));
                         channel.pipeline().addLast(new ProtobufVarint32LengthFieldPrepender());
                         channel.pipeline().addLast(new ProtobufEncoder());
                         channel.pipeline().addLast(new CfsServerHandler());
